@@ -17,14 +17,14 @@ function App() {
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="h-screen flex overflow-hidden bg-gray-50 dark:bg-dark-bg transition-colors duration-300">
       {/* Sidebar - Fixed */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-2 lg:p-4">
-          <div className="bg-white rounded-xl shadow-lg p-4 lg:p-6">
+          <div className="bg-white dark:bg-dark-card rounded-xl shadow-lg dark:shadow-xl p-4 lg:p-6 border border-gray-200 dark:border-dark-border transition-all duration-300">
             <ActiveComponent />
           </div>
         </div>

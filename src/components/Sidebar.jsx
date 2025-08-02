@@ -1,114 +1,148 @@
 import React, { useState } from 'react'
+import { 
+  Dumbbell, 
+  BookOpen, 
+  Briefcase,
+  ChevronRight,
+  ChevronLeft,
+  Award
+} from 'lucide-react'
+import ThemeToggle from './ThemeToggle'
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   const tabs = [
-    { id: 'gym', name: 'Gym Routine', icon: '🏋️', description: 'Track your workouts and PRs' },
-    { id: 'study', name: 'Study Routine', icon: '🎓', description: 'Manage your study schedule' },
-    { id: 'office', name: 'Office Work', icon: '💼', description: 'Organize work tasks and projects' }
+    { 
+      id: 'gym', 
+      name: 'Gym Routine', 
+      icon: <Dumbbell className="w-5 h-5" />, 
+      description: 'Track your workouts and PRs' 
+    },
+    { 
+      id: 'study', 
+      name: 'Study Routine', 
+      icon: <BookOpen className="w-5 h-5" />, 
+      description: 'Manage your study schedule' 
+    },
+    { 
+      id: 'office', 
+      name: 'Office Work', 
+      icon: <Briefcase className="w-5 h-5" />, 
+      description: 'Organize work tasks and projects' 
+    }
   ]
 
-  const closeSidebar = () => {
-    setIsOpen(false)
-  }
+  const toggleSidebar = () => setIsOpen(!isOpen)
+  const closeMobileSidebar = () => setIsMobileOpen(false)
 
   return (
     <>
       {/* Mobile Overlay */}
-      {isOpen && (
+      {isMobileOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={closeSidebar}
+          className="fixed inset-0 bg-black/50 lg:hidden z-40 backdrop-blur-sm"
+          onClick={closeMobileSidebar}
         />
       )}
 
       {/* Mobile Menu Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 right-4 z-50 lg:hidden bg-white p-2 rounded-lg shadow-lg border border-gray-200"
+        onClick={() => setIsMobileOpen(true)}
+        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md border border-gray-200 dark:border-gray-700 transition-all hover:scale-105"
       >
-        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
       {/* Sidebar */}
-      <div className={`
-        fixed top-0 left-0 h-full bg-white shadow-lg border-r border-gray-200 z-50
-        transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:z-auto
-        w-64 flex-shrink-0
+      <aside className={`
+        fixed lg:sticky top-0 left-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-50
+        transition-all duration-300 ease-in-out
+        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+        ${isOpen ? 'w-64' : 'w-20'}
+        flex flex-col
       `}>
-        <div className="h-full flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="p-6 flex-shrink-0">
-            <div className="flex items-center justify-between lg:justify-start">
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                Student Dashboard
-              </h1>
-              {/* Close button for mobile */}
-              <button
-                onClick={closeSidebar}
-                className="lg:hidden p-1 rounded-lg hover:bg-gray-100"
-              >
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        {/* Header */}
+        <div className={`p-4 flex ${isOpen ? 'justify-between' : 'justify-center'} items-center border-b border-gray-200 dark:border-gray-800`}>
+          {isOpen ? (
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+                <Award className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-800 dark:text-white">Student Dashboard</h1>
             </div>
-            <p className="text-sm text-gray-500">
-              Organize your weekly routine
-            </p>
-          </div>
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+              <Award className="w-5 h-5 text-white" />
+            </div>
+          )}
           
-          {/* Navigation Links */}
-          <nav className="flex-1 px-6 pb-6 overflow-y-auto">
-            <div className="space-y-2">
-              {tabs.map((tab) => (
+          <button
+            onClick={toggleSidebar}
+            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            {isOpen ? (
+              <ChevronLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            )}
+          </button>
+        </div>
+
+        {/* Main Navigation */}
+        <nav className="flex-1 overflow-y-auto py-4 px-2">
+          <ul className="space-y-1">
+            {tabs.map((tab) => (
+              <li key={tab.id}>
                 <button
-                  key={tab.id}
                   onClick={() => {
                     setActiveTab(tab.id)
-                    closeSidebar()
+                    closeMobileSidebar()
                   }}
-                  className={`w-full text-left p-4 rounded-lg font-medium transition-all duration-200 group ${
-                    activeTab === tab.id
-                      ? 'bg-blue-600 text-white shadow-md transform scale-105'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800 hover:shadow-sm'
-                  }`}
+                  className={`
+                    w-full flex items-center rounded-lg p-3 transition-all
+                    ${activeTab === tab.id 
+                      ? 'bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-medium shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }
+                    ${isOpen ? 'justify-start space-x-3' : 'justify-center'}
+                  `}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{tab.icon}</span>
-                    <div className="flex-1">
-                      <div className="font-semibold">{tab.name}</div>
-                      <div className={`text-xs mt-1 ${
-                        activeTab === tab.id ? 'text-blue-100' : 'text-gray-400'
-                      }`}>
+                  <div className={`${activeTab === tab.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {tab.icon}
+                  </div>
+                  {isOpen && (
+                    <div className="text-left">
+                      <div>{tab.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {tab.description}
                       </div>
                     </div>
-                    {activeTab === tab.id && (
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                    )}
-                  </div>
+                  )}
                 </button>
-              ))}
-            </div>
-          </nav>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-          {/* Footer */}
-          <div className="p-6 flex-shrink-0 border-t border-gray-200">
-            <div className="text-center">
-              <div className="text-4xl mb-2">📊</div>
-              <p className="text-sm text-gray-500">
-                Stay organized and productive!
-              </p>
-            </div>
-          </div>
+        {/* Footer */}
+        <div className={`p-4 border-t border-gray-200 dark:border-gray-800 ${isOpen ? 'flex justify-between' : 'flex justify-center'}`}>
+          {isOpen ? (
+            <>
+              <ThemeToggle />
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium">
+                JD
+              </div>
+            </>
+          ) : (
+            <ThemeToggle />
+          )}
         </div>
-      </div>
+      </aside>
     </>
   )
 }

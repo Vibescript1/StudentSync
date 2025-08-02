@@ -612,7 +612,8 @@ const GymRoutine = () => {
           ...prev[day]?.exercises,
           [exercise]: {
             ...prev[day]?.exercises?.[exercise],
-            pr: value
+            pr: value,
+            completed: false // Uncheck when editing PR
           }
         }
       }
@@ -628,7 +629,8 @@ const GymRoutine = () => {
           ...prev[day]?.exercises,
           [exercise]: {
             ...prev[day]?.exercises?.[exercise],
-            customSets: parseInt(value) || 0
+            customSets: parseInt(value) || 0,
+            completed: false // Uncheck when editing sets
           }
         }
       }
@@ -644,7 +646,8 @@ const GymRoutine = () => {
           ...prev[day]?.exercises,
           [exercise]: {
             ...prev[day]?.exercises?.[exercise],
-            customReps: value
+            customReps: value,
+            completed: false // Uncheck when editing reps
           }
         }
       }
@@ -656,6 +659,23 @@ const GymRoutine = () => {
       ...prev,
       [`${day}-${exercise}`]: !prev[`${day}-${exercise}`]
     }))
+    
+    // Uncheck the exercise when entering edit mode
+    if (!editingSets[`${day}-${exercise}`]) {
+      setGymData(prev => ({
+        ...prev,
+        [day]: {
+          ...prev[day],
+          exercises: {
+            ...prev[day]?.exercises,
+            [exercise]: {
+              ...prev[day]?.exercises?.[exercise],
+              completed: false
+            }
+          }
+        }
+      }))
+    }
   }
 
   const toggleRepsEditing = (day, exercise) => {
@@ -663,6 +683,23 @@ const GymRoutine = () => {
       ...prev,
       [`${day}-${exercise}`]: !prev[`${day}-${exercise}`]
     }))
+    
+    // Uncheck the exercise when entering edit mode
+    if (!editingReps[`${day}-${exercise}`]) {
+      setGymData(prev => ({
+        ...prev,
+        [day]: {
+          ...prev[day],
+          exercises: {
+            ...prev[day]?.exercises,
+            [exercise]: {
+              ...prev[day]?.exercises?.[exercise],
+              completed: false
+            }
+          }
+        }
+      }))
+    }
   }
 
   const getExerciseSets = (day, exercise) => {
@@ -691,21 +728,21 @@ const GymRoutine = () => {
 
       {/* Motivational Popup */}
       {showMotivation && todayMotivation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-dark-card rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all duration-300 scale-100">
-                          <div className="text-center">
-                <div className="text-5xl mb-3 animate-bounce">{todayMotivation.emoji}</div>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-dark-text mb-3 transition-colors duration-300">{todayMotivation.title}</h2>
-                <p className="text-gray-600 dark:text-dark-textSecondary mb-4 text-sm leading-relaxed transition-colors duration-300">{todayMotivation.message}</p>
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-3 mb-4 border border-blue-100 dark:border-blue-800/30 transition-colors duration-300">
-          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium transition-colors duration-300">Today's Date</p>
-          <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 transition-colors duration-300">{todayDate}</p>
-        </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white dark:bg-dark-card rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-xs sm:max-w-sm w-full shadow-2xl transform transition-all duration-300 scale-100">
+            <div className="text-center">
+              <div className="text-3xl sm:text-5xl mb-2 sm:mb-3 animate-bounce">{todayMotivation.emoji}</div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-dark-text mb-2 sm:mb-3 transition-colors duration-300">{todayMotivation.title}</h2>
+              <p className="text-gray-600 dark:text-dark-textSecondary mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed transition-colors duration-300">{todayMotivation.message}</p>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 border border-blue-100 dark:border-blue-800/30 transition-colors duration-300">
+                <p className="text-xs text-blue-600 dark:text-blue-400 font-medium transition-colors duration-300">Today's Date</p>
+                <p className="text-xs sm:text-sm font-semibold text-blue-800 dark:text-blue-300 transition-colors duration-300">{todayDate}</p>
+              </div>
               <button
                 onClick={closeMotivation}
-                className="group relative bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-2.5 rounded-full font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                className="group relative bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 text-sm sm:text-base"
               >
-                <span className="flex items-center justify-center space-x-2">
+                <span className="flex items-center justify-center space-x-1 sm:space-x-2">
                   <span>Let's Go!</span>
                   <span className="group-hover:animate-bounce">💪</span>
                 </span>
@@ -1021,6 +1058,24 @@ const GymRoutine = () => {
                         placeholder="Personal Record (e.g., 225 lbs)"
                         value={gymData[todayDay]?.exercises?.[exercise.name]?.pr || ''}
                         onChange={(e) => handlePRChange(todayDay, exercise.name, e.target.value)}
+                        onFocus={() => {
+                          // Uncheck when focusing on PR field
+                          if (gymData[todayDay]?.exercises?.[exercise.name]?.completed) {
+                            setGymData(prev => ({
+                              ...prev,
+                              [todayDay]: {
+                                ...prev[todayDay],
+                                exercises: {
+                                  ...prev[todayDay]?.exercises,
+                                  [exercise.name]: {
+                                    ...prev[todayDay]?.exercises?.[exercise.name],
+                                    completed: false
+                                  }
+                                }
+                              }
+                            }))
+                          }
+                        }}
                         className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-dark-card text-gray-900 dark:text-dark-text transition-colors duration-300 placeholder-gray-500 dark:placeholder-gray-400"
                       />
                     </div>
@@ -1201,6 +1256,24 @@ const GymRoutine = () => {
                                 placeholder="Personal Record"
                                 value={gymData[day]?.exercises?.[exercise.name]?.pr || ''}
                                 onChange={(e) => handlePRChange(day, exercise.name, e.target.value)}
+                                onFocus={() => {
+                                  // Uncheck when focusing on PR field
+                                  if (gymData[day]?.exercises?.[exercise.name]?.completed) {
+                                    setGymData(prev => ({
+                                      ...prev,
+                                      [day]: {
+                                        ...prev[day],
+                                        exercises: {
+                                          ...prev[day]?.exercises,
+                                          [exercise.name]: {
+                                            ...prev[day]?.exercises?.[exercise.name],
+                                            completed: false
+                                          }
+                                        }
+                                      }
+                                    }))
+                                  }
+                                }}
                                 className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-dark-card text-gray-900 dark:text-dark-text transition-colors duration-300 placeholder-gray-500 dark:placeholder-gray-400"
                               />
                             </div>

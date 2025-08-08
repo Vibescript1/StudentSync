@@ -40,44 +40,7 @@ const GymRoutine = () => {
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   
-  // Motivational messages based on day
-  const motivationalMessages = {
-    'Monday': {
-      title: "💪 Monday Motivation!",
-      message: "Start your week strong! Today is chest day - let's build those gains!",
-      emoji: "🏋️"
-    },
-    'Tuesday': {
-      title: "🦵 Tuesday Power!",
-      message: "Leg day is here! Strong legs, strong foundation. Push through!",
-      emoji: "💪"
-    },
-    'Wednesday': {
-      title: "💪 Wednesday Warriors!",
-      message: "Back day! Pull your way to greatness. You've got this!",
-      emoji: "🔥"
-    },
-    'Thursday': {
-      title: "💪 Thursday Thrive!",
-      message: "Shoulder day! Build those boulders and stand tall!",
-      emoji: "⚡"
-    },
-    'Friday': {
-      title: "💪 Friday Force!",
-      message: "Full body day! End your week with power and strength!",
-      emoji: "🚀"
-    },
-    'Saturday': {
-      title: "💪 Saturday Strength!",
-      message: "Bodyweight and core day! Functional fitness for life!",
-      emoji: "🎯"
-    },
-    'Sunday': {
-      title: "😴 Sunday Rest & Recovery",
-      message: "Your body deserves this rest day. Recharge and prepare for another amazing week!",
-      emoji: "🧘"
-    }
-  }
+
   
 
 
@@ -102,9 +65,7 @@ const GymRoutine = () => {
     }))
   }
 
-  const closeMotivation = () => {
-    setShowMotivation(false)
-  }
+
 
 
 
@@ -715,7 +676,10 @@ const GymRoutine = () => {
   }
 
   const otherDays = getOtherDays()
-  const todayMotivation = todayDay ? motivationalMessages[todayDay] : null
+
+  const closeMotivation = () => {
+    setShowMotivation(false)
+  }
 
   return (
     <>
@@ -726,14 +690,15 @@ const GymRoutine = () => {
         </div>
       )}
 
-      {/* Motivational Popup */}
-      {showMotivation && todayMotivation && (
+
+
+      {/* Welcome Popup */}
+      {showMotivation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4">
           <div className="bg-white dark:bg-dark-card rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-xs sm:max-w-sm w-full shadow-2xl transform transition-all duration-300 scale-100">
             <div className="text-center">
-              <div className="text-3xl sm:text-5xl mb-2 sm:mb-3 animate-bounce">{todayMotivation.emoji}</div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-dark-text mb-2 sm:mb-3 transition-colors duration-300">{todayMotivation.title}</h2>
-              <p className="text-gray-600 dark:text-dark-textSecondary mb-3 sm:mb-4 text-xs sm:text-sm leading-relaxed transition-colors duration-300">{todayMotivation.message}</p>
+              <div className="text-3xl sm:text-5xl mb-2 sm:mb-3 animate-bounce">🏋️</div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-dark-text mb-2 sm:mb-3 transition-colors duration-300">Welcome to Your Gym Routine</h2>
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-2 sm:p-3 mb-3 sm:mb-4 border border-blue-100 dark:border-blue-800/30 transition-colors duration-300">
                 <p className="text-xs text-blue-600 dark:text-blue-400 font-medium transition-colors duration-300">Today's Date</p>
                 <p className="text-xs sm:text-sm font-semibold text-blue-800 dark:text-blue-300 transition-colors duration-300">{todayDate}</p>
@@ -743,7 +708,7 @@ const GymRoutine = () => {
                 className="group relative bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-full font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 text-sm sm:text-base"
               >
                 <span className="flex items-center justify-center space-x-1 sm:space-x-2">
-                  <span>Let's Go!</span>
+                  <span>Get Started</span>
                   <span className="group-hover:animate-bounce">💪</span>
                 </span>
                 <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-full transition-opacity duration-300"></div>

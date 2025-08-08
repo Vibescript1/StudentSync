@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaPlay, FaPause, FaStop, FaTrash, FaBook, FaPlus, FaExclamationTriangle, FaCheck, FaTrophy, FaCrown, FaBed, FaChartLine, FaSearch, FaPen, FaChartBar, FaBolt, FaMeditation, FaExclamationCircle } from 'react-icons/fa';
+import { FaPlay, FaPause, FaStop, FaTrash, FaBook, FaPlus } from 'react-icons/fa';
 import { useStudyStreakLogic } from './useStudyStreakLogic';
 
 const StudyRoutine = () => {
@@ -26,6 +26,7 @@ const StudyRoutine = () => {
   const [showStatsPopup, setShowStatsPopup] = useState(false);
   const [lastWeekTotal, setLastWeekTotal] = useState(0);
   const [currentWeekTotal, setCurrentWeekTotal] = useState(0);
+  const [isWeeklyReset, setIsWeeklyReset] = useState(false);
 
   // Use the streak logic custom hook
   const {
@@ -69,32 +70,32 @@ const StudyRoutine = () => {
     'Monday': {
       title: "📚 Monday Focus!",
       message: "Start your week strong! Tackle your most challenging subjects today.",
-      icon: FaBook
+      emoji: "🧠"
     },
     'Tuesday': {
       title: "📖 Tuesday Momentum!",
       message: "Build on yesterday's progress. Consistency is key to mastery!",
-      icon: FaChartLine
+      emoji: "📈"
     },
     'Wednesday': {
       title: "✍️ Wednesday Wisdom!",
       message: "Halfway through the week! Review what you've learned so far.",
-      icon: FaSearch
+      emoji: "🔍"
     },
     'Thursday': {
       title: "📝 Thursday Thrive!",
       message: "Practice makes perfect. Focus on application today!",
-      icon: FaPen
+      emoji: "🖋️"
     },
     'Friday': {
       title: "📊 Friday Review!",
       message: "Consolidate your week's learning. What needs more attention?",
-      icon: FaChartBar
+      emoji: "📚"
     },
     'Saturday': {
       title: "🎯 Saturday Study!",
       message: "Weekend study sessions can be your secret weapon!",
-      icon: FaBolt
+      emoji: "⚡"
     },
     'Sunday': {
       title: "🧘 Sunday Reflection",
@@ -356,6 +357,15 @@ const StudyRoutine = () => {
 
   // Toggle subject completion status
   const handleSubjectToggle = (day, subjectIndex) => {
+    // Get the current subject
+    const currentSubject = studyData[day]?.subjects?.[subjectIndex];
+    
+    // If trying to check the checkbox, validate that goals are filled
+    if (!currentSubject?.completed && (!currentSubject?.goals || currentSubject.goals.trim() === '')) {
+      showValidationMessage('Please fill in the study goals before marking as completed');
+      return;
+    }
+    
     setStudyData(prev => {
       const newData = {
       ...prev,
@@ -370,10 +380,13 @@ const StudyRoutine = () => {
       // Check if all subjects for this day are now completed
       const subjects = newData[day]?.subjects || [];
       const allCompleted = subjects.every(subject => subject.completed);
+      const completedCount = subjects.filter(subject => subject.completed).length;
+      const totalSubjects = subjects.length;
+      const progressPercentage = totalSubjects > 0 ? (completedCount / totalSubjects) * 100 : 0;
       
       if (day === todayDay && streakLoaded && todayDay) {
-        // Check if this action caused all subjects to become completed
-        if (allCompleted) {
+        // Check if this action caused all subjects to become completed (progress bar = 100%)
+        if (allCompleted && totalSubjects > 0) {
           // Check if this was the subject that completed all subjects
           const wasAllCompletedBefore = subjects.every((subject, index) => {
             if (index === subjectIndex) {
@@ -383,7 +396,7 @@ const StudyRoutine = () => {
           });
           
           if (!wasAllCompletedBefore) {
-          // This check caused all subjects to become completed - increment streak
+          // This check caused all subjects to become completed (progress bar = 100%) - increment streak
           const isNewStreakAchieved = incrementStreak();
           
           if (isNewStreakAchieved) {
@@ -433,8 +446,8 @@ const StudyRoutine = () => {
               }, 50); // Update every 50ms for smooth animation
             }
           }
-        } else {
-          // Check if this uncheck broke the "all completed" status
+        } else if (progressPercentage < 100) {
+          // Check if this uncheck broke the "all completed" status (progress bar < 100%)
           const wasAllCompleted = subjects.every((subject, index) => {
             if (index === subjectIndex) {
               return !subject.completed; // This subject was completed before
@@ -502,13 +515,79 @@ const StudyRoutine = () => {
       goals: ''
     };
 
-    setStudyData(prev => ({
+    setStudyData(prev => {
+      const updatedData = {
       ...prev,
       [day]: {
         ...prev[day],
         subjects: [...(prev[day]?.subjects || []), newSubject]
       }
-    }));
+      };
+
+             // Check if all subjects for this day are now completed after adding the new subject
+       const updatedSubjects = updatedData[day]?.subjects || [];
+       const allCompleted = updatedSubjects.every(subject => subject.completed);
+       const completedCount = updatedSubjects.filter(subject => subject.completed).length;
+       const totalSubjects = updatedSubjects.length;
+       const progressPercentage = totalSubjects > 0 ? (completedCount / totalSubjects) * 100 : 0;
+       
+       // Check if adding this subject broke the 100% completion
+       const previousSubjects = studyData[day]?.subjects || [];
+       const previousCompletedCount = previousSubjects.filter(subject => subject.completed).length;
+       const previousTotalSubjects = previousSubjects.length;
+       const previousProgressPercentage = previousTotalSubjects > 0 ? (previousCompletedCount / previousTotalSubjects) * 100 : 0;
+       
+       // If all subjects are completed (progress bar = 100%) and this is today's day, check streak
+       if (day === todayDay && allCompleted && totalSubjects > 0 && streakLoaded) {
+         const today = new Date().toDateString();
+         const lastCompletedDate = streakData.lastCompletedDate;
+         
+         // Only increment if we haven't already completed today
+         if (lastCompletedDate !== today) {
+           // Use setTimeout to ensure state update completes first
+           setTimeout(() => {
+             const isNewStreakAchieved = incrementStreak();
+             
+             if (isNewStreakAchieved) {
+               setShowCompletionAnimation(true);
+               setIsNewStreak(true);
+               setValidationMessage('');
+               setIsValidationShowing(false);
+               setNotificationProgress(100);
+               
+               // Start progress bar countdown
+               const startTime = Date.now();
+               const duration = 3000; // 3 seconds
+               
+               const progressInterval = setInterval(() => {
+                 const elapsed = Date.now() - startTime;
+                 const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+                 setNotificationProgress(remaining);
+                 
+                 if (remaining <= 0) {
+                   clearInterval(progressInterval);
+                   setShowCompletionAnimation(false);
+                   setIsNewStreak(false);
+                 }
+               }, 50); // Update every 50ms for smooth animation
+             }
+           }, 100);
+         }
+       } else if (day === todayDay && progressPercentage < 100 && previousProgressPercentage === 100 && streakLoaded) {
+         // If adding this subject broke the 100% completion, decrement streak
+         const today = new Date().toDateString();
+         const lastCompletedDate = streakData.lastCompletedDate;
+         
+         // Only decrement if streak was incremented today
+         if (lastCompletedDate === today && streakData.currentStreak > 0) {
+           setTimeout(() => {
+             decrementStreak();
+           }, 100);
+         }
+       }
+
+      return updatedData;
+    });
 
     setNewSubjectName('');
     setShowAddSubject(prev => ({
@@ -524,6 +603,10 @@ const StudyRoutine = () => {
       stopTimer();
     }
     
+    // Get the subject being deleted to subtract its time
+    const subjectToDelete = studyData[day]?.subjects?.[subjectIndex];
+    const timeToSubtract = subjectToDelete?.timeSpent || 0;
+    
     setStudyData(prev => ({
         ...prev,
         [day]: {
@@ -531,6 +614,17 @@ const StudyRoutine = () => {
           subjects: prev[day]?.subjects?.filter((_, index) => index !== subjectIndex) || []
         }
     }));
+    
+    // Subtract the deleted subject's time from total study time
+    if (timeToSubtract > 0) {
+      setTotalStudyTime(prev => Math.max(0, prev - timeToSubtract));
+      
+      // Also subtract from today's study time if it's today's subject
+      if (day === todayDay) {
+        setTodayStudyTime(prev => Math.max(0, prev - timeToSubtract));
+        localStorage.setItem('todayStudyTime', Math.max(0, todayStudyTime - timeToSubtract).toString());
+      }
+    }
   };
 
   // Update subject goals
@@ -597,17 +691,109 @@ const StudyRoutine = () => {
     }
   }, [streakLoaded, todayDay]);
 
+  // Weekly reset functionality - reset subjects and timing at the start of each week
+  useEffect(() => {
+    if (streakLoaded && todayDay) {
+      const today = new Date();
+      const currentWeekStart = new Date(today);
+      currentWeekStart.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
+      currentWeekStart.setHours(0, 0, 0, 0);
+      
+      const lastWeekStart = new Date(currentWeekStart);
+      lastWeekStart.setDate(currentWeekStart.getDate() - 7); // Start of last week
+      
+      // Check if we need to reset (if we're in a new week compared to last saved data)
+      const lastResetDate = localStorage.getItem('lastWeeklyResetDate');
+      const lastReset = lastResetDate ? new Date(lastResetDate) : null;
+      
+      if (!lastReset || lastReset < currentWeekStart) {
+        // New week detected - reset all subjects and timing
+        setStudyData(prev => {
+          const resetData = {};
+          
+          // Reset all days
+          days.forEach(day => {
+            if (prev[day]?.subjects) {
+              resetData[day] = {
+                ...prev[day],
+                subjects: prev[day].subjects.map(subject => ({
+                  ...subject,
+                  completed: false, // Reset checkbox
+                  timeSpent: 0, // Reset timing
+                  goals: subject.goals // Keep goals for reference
+                }))
+              };
+            }
+          });
+          
+          return resetData;
+        });
+        
+        // Reset today's study time
+        setTodayStudyTime(0);
+        localStorage.setItem('todayStudyTime', '0');
+        localStorage.setItem('todayStudyDate', today.toDateString());
+        
+        // Save the reset date
+        localStorage.setItem('lastWeeklyResetDate', currentWeekStart.toDateString());
+        
+                 // Show reset notification
+         setShowCompletionAnimation(true);
+         setIsNewStreak(false);
+         setIsWeeklyReset(true);
+         setValidationMessage('');
+         setIsValidationShowing(false);
+         setNotificationProgress(100);
+        
+        // Start progress bar countdown for reset notification
+        const startTime = Date.now();
+        const duration = 3000; // 3 seconds
+        
+        const progressInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+          setNotificationProgress(remaining);
+          
+                     if (remaining <= 0) {
+             clearInterval(progressInterval);
+             setShowCompletionAnimation(false);
+             setIsWeeklyReset(false);
+           }
+        }, 50);
+      }
+    }
+  }, [streakLoaded, todayDay, days]);
+
   // Check if all subjects are completed for today when streak is loaded
   useEffect(() => {
     if (streakLoaded && todayDay && studyData[todayDay]) {
       const subjects = studyData[todayDay]?.subjects || [];
       const allCompleted = subjects.every(subject => subject.completed);
+      const completedCount = subjects.filter(subject => subject.completed).length;
+      const totalSubjects = subjects.length;
+      const progressPercentage = totalSubjects > 0 ? (completedCount / totalSubjects) * 100 : 0;
       
-      if (allCompleted && subjects.length > 0) {
+      // Only increment streak if all subjects are completed (progress bar = 100%) AND there are subjects AND streak hasn't been incremented for today yet
+      if (allCompleted && totalSubjects > 0) {
+        const today = new Date().toDateString();
+        const lastCompletedDate = streakData.lastCompletedDate;
+        
+        // Only increment if we haven't already completed today
+        if (lastCompletedDate !== today) {
         incrementStreak();
       }
+      } else if (subjects.length === 0) {
+        // If there are no subjects, ensure streak is reset to 0 for today
+        const today = new Date().toDateString();
+        const lastCompletedDate = streakData.lastCompletedDate;
+        
+        // If streak was incremented today but now there are no subjects, decrement it
+        if (lastCompletedDate === today && streakData.currentStreak > 0) {
+          decrementStreak();
+        }
+      }
     }
-  }, [streakLoaded, todayDay, studyData]);
+  }, [streakLoaded, todayDay, studyData, streakData.lastCompletedDate]);
 
   // Handle page visibility changes (when user switches tabs or closes window)
   useEffect(() => {
@@ -651,19 +837,21 @@ const StudyRoutine = () => {
                   validationMessage || duplicateSubjectMessage ? 'bg-orange-100' : 'bg-green-100'
                 }`}>
                   <span className={`text-sm ${validationMessage || duplicateSubjectMessage ? 'text-orange-600' : 'text-green-600'}`}>
-                    {validationMessage || duplicateSubjectMessage ? <FaExclamationTriangle /> : <FaCheck />}
+                    {validationMessage || duplicateSubjectMessage ? '⚠️' : '✓'}
                   </span>
         </div>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-gray-900 dark:text-dark-text transition-colors duration-300">
-                  {validationMessage ? 'Required' : duplicateSubjectMessage ? 'Duplicate' : (isNewStreak && todayDay === 'Sunday' ? 'Sunday Bonus!' : isNewStreak ? 'New Streak!' : 'Complete!')}
+                  {validationMessage ? 'Required' : duplicateSubjectMessage ? 'Duplicate' : isWeeklyReset ? 'Weekly Reset!' : (isNewStreak && todayDay === 'Sunday' ? 'Sunday Bonus!' : isNewStreak ? 'New Streak!' : 'Complete!')}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-dark-textSecondary transition-colors duration-300">
                   {validationMessage 
                     ? 'Please enter a subject name'
                     : duplicateSubjectMessage
                     ? 'Subject already exists'
+                    : isWeeklyReset
+                    ? 'Fresh start for the new week! 📅'
                     : (isNewStreak && todayDay === 'Sunday'
                         ? 'Sunday bonus! +1 streak 🎉'
                         : isNewStreak
@@ -709,7 +897,7 @@ const StudyRoutine = () => {
           <div className="bg-white dark:bg-dark-card rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-100">
             <div className="p-6">
               <div className="text-center mb-6">
-                <div className="text-4xl mb-2"><FaBook /></div>
+                <div className="text-4xl mb-2">📚</div>
                 <h3 className="text-xl font-bold text-gray-800 dark:text-dark-text mb-2">
                   Currently Studying
                 </h3>
@@ -767,7 +955,7 @@ const StudyRoutine = () => {
           className="group bg-purple-500 hover:bg-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 active:scale-95 flex items-center justify-center"
           style={{ width: '50px', height: '50px' }}
         >
-          <FaChartBar className="text-xl" />
+          <span className="text-xl">📊</span>
           <div className="absolute bottom-full left-0 mb-2 px-3 py-1 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
             Weekly Stats
             <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
@@ -781,7 +969,7 @@ const StudyRoutine = () => {
           <div className="bg-white dark:bg-dark-card rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-100">
             <div className="p-6">
               <div className="text-center mb-6">
-                <div className="text-4xl mb-2"><FaChartBar /></div>
+                <div className="text-4xl mb-2">📊</div>
                 <h3 className="text-xl font-bold text-gray-800 dark:text-dark-text mb-2">
                   Weekly Study Statistics
                 </h3>
@@ -828,32 +1016,32 @@ const StudyRoutine = () => {
                         
                         if (lastWeekTotal === 0 && currentWeekTotal > 0) {
                           return (
-                            <span className="text-green-600 dark:text-green-400 flex items-center gap-2">
-                              <FaTrophy /> Great start! You've studied {formatTime(currentWeekTotal)} this week!
+                            <span className="text-green-600 dark:text-green-400">
+                              🎉 Great start! You've studied {formatTime(currentWeekTotal)} this week!
                             </span>
                           );
                         } else if (lastWeekTotal === 0 && currentWeekTotal === 0) {
                           return (
-                            <span className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                              <FaBook /> Start studying to track your progress!
+                            <span className="text-gray-600 dark:text-gray-400">
+                              📚 Start studying to track your progress!
                             </span>
                           );
                         } else if (difference > 0) {
                           return (
-                            <span className="text-green-600 dark:text-green-400 flex items-center gap-2">
-                              <FaTrophy /> You studied {differenceFormatted} more than last week!
+                            <span className="text-green-600 dark:text-green-400">
+                              🎉 You studied {differenceFormatted} more than last week!
                             </span>
                           );
                         } else if (difference < 0) {
                           return (
-                            <span className="text-orange-600 dark:text-orange-400 flex items-center gap-2">
-                              <FaBook /> You need to study {differenceFormatted} more to match last week
+                            <span className="text-orange-600 dark:text-orange-400">
+                              📚 You need to study {differenceFormatted} more to match last week
                             </span>
                           );
                         } else {
                           return (
-                            <span className="text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                              <FaChartBar /> Same study time as last week
+                            <span className="text-blue-600 dark:text-blue-400">
+                              📊 Same study time as last week
                             </span>
                           );
                         }
@@ -878,7 +1066,7 @@ const StudyRoutine = () => {
 
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text transition-colors duration-300 flex items-center gap-2">.....  <FaBook /> Study Routine Tracker</h2>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text transition-colors duration-300">.....  📚 Study Routine Tracker</h2>
           <div className="hidden md:block">
             <div className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 border ${
               streakLoaded 
@@ -981,8 +1169,8 @@ const StudyRoutine = () => {
           
           {todayDay === 'Sunday' ? (
               <div className="text-center py-8">
-                <div className="text-4xl mb-2"><FaMeditation /></div>
-                <p className="text-gray-600 dark:text-dark-textSecondary font-medium text-lg transition-colors duration-300">Weekly Review Day</p>
+              <div className="text-4xl mb-2">🧘</div>
+              <p className="text-gray-600 dark:text-dark-textSecondary font-medium text-lg transition-colors duration-300">Weekly Review Day</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">Reflect on your progress and plan for next week</p>
             </div>
           ) : (
@@ -1011,6 +1199,14 @@ const StudyRoutine = () => {
                       placeholder="Subject Name (e.g., Calculus)"
                       value={newSubjectName}
                       onChange={(e) => setNewSubjectName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newSubjectName.trim()) {
+                              addSubject(todayDay);
+                            }
+                          }
+                        }}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-dark-card text-gray-900 dark:text-dark-text transition-colors duration-300 placeholder-gray-500 dark:placeholder-gray-400"
                     />
                   </div>
@@ -1100,7 +1296,7 @@ const StudyRoutine = () => {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="text-4xl mb-2"><FaBook /></div>
+                  <div className="text-4xl mb-2">📚</div>
                   <p className="text-gray-600 dark:text-dark-textSecondary font-medium transition-colors duration-300">No subjects yet</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">Add your first subject using the + button!</p>
                 </div>
@@ -1147,7 +1343,7 @@ const StudyRoutine = () => {
                   <div className="px-4 pb-4">
                     {day === 'Sunday' ? (
                       <div className="text-center py-6">
-                        <div className="text-3xl mb-2"><FaPen /></div>
+                        <div className="text-3xl mb-2">📝</div>
                         <p className="text-gray-600 dark:text-dark-textSecondary font-medium transition-colors duration-300">Weekly Review</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">Plan and reflect on your studies</p>
                       </div>
@@ -1172,6 +1368,14 @@ const StudyRoutine = () => {
                                 placeholder="Subject Name"
                                 value={newSubjectName}
                                 onChange={(e) => setNewSubjectName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    if (newSubjectName.trim()) {
+                                      addSubject(day);
+                                    }
+                                  }
+                                }}
                                 className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-dark-hover text-gray-900 dark:text-dark-text transition-colors duration-300 placeholder-gray-500 dark:placeholder-gray-400"
                               />
                             </div>

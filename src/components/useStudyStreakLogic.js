@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { FaBed, FaBook, FaCrosshairs, FaBrain, FaTrophy, FaCrown } from 'react-icons/fa'
 
 export const useStudyStreakLogic = () => {
   const [isAnimating, setIsAnimating] = useState(false)
@@ -125,12 +124,12 @@ export const useStudyStreakLogic = () => {
   }, [])
 
   const getStreakEmoji = useCallback((streak) => {
-    if (streak === 0) return <FaBed />
-    if (streak < 3) return <FaBook />
-    if (streak < 7) return <FaCrosshairs />
-    if (streak < 14) return <FaBrain />
-    if (streak < 30) return <FaTrophy />
-    return <FaCrown />
+    if (streak === 0) return '😴'
+    if (streak < 3) return '📚'
+    if (streak < 7) return '🎯'
+    if (streak < 14) return '🧠'
+    if (streak < 30) return '🏆'
+    return '👑'
   }, [])
 
   const addSundayBonus = useCallback((todayDay, setShowCompletionAnimation, setIsNewStreak, setValidationMessage, setIsValidationShowing, setNotificationProgress) => {

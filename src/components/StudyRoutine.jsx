@@ -276,6 +276,12 @@ const StudyRoutine = () => {
 
   // Start timer for a subject
   const startTimer = (day, subjectIndex) => {
+    // Only allow starting timer for today's subjects
+    if (day !== todayDay) {
+      showValidationMessage(`You can only start timers for today's subjects (${todayDay})`);
+      return;
+    }
+    
     // If there's an active timer, stop it first
     if (activeTimer) {
       stopTimer();
@@ -1398,7 +1404,7 @@ const StudyRoutine = () => {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                           {subjects.map((subject, subjectIndex) => (
-                            <div key={subjectIndex} className="bg-white dark:bg-dark-card rounded-lg p-3 border border-gray-200 dark:border-dark-border relative transition-colors duration-300">
+                            <div key={subjectIndex} className="bg-white dark:bg-dark-card rounded-lg p-3 border border-gray-200 dark:border-dark-border relative transition-colors duration-300 group">
                               <div className="flex items-center justify-between mb-2">
                                 <label className="flex items-center space-x-2 cursor-pointer">
                                   <input
@@ -1437,13 +1443,25 @@ const StudyRoutine = () => {
                                     <FaStop className="mr-1" /> Stop
                                   </button>
                                 ) : (
-                                <button 
-                                  onClick={() => startTimer(day, subjectIndex)}
-                                  className="flex items-center px-2 py-1 bg-green-500 text-white rounded text-xs"
-                                  disabled={activeTimer !== null}
-                                >
-                                  <FaPlay className="mr-1" /> Start
-                                </button>
+                                <div className="relative">
+                                  <button 
+                                    onClick={() => startTimer(day, subjectIndex)}
+                                    className={`flex items-center px-2 py-1 rounded text-xs ${
+                                      day !== todayDay 
+                                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50' 
+                                        : 'bg-green-500 text-white hover:bg-green-600'
+                                    }`}
+                                    disabled={activeTimer !== null || day !== todayDay}
+                                    title={day !== todayDay ? `You can only start timers for today (${todayDay})` : ''}
+                                  >
+                                    <FaPlay className="mr-1" /> Start
+                                  </button>
+                                  {day !== todayDay && (
+                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+                                      Only today's timers allowed
+                                    </div>
+                                  )}
+                                </div>
                                 )}
                               </div>
                               

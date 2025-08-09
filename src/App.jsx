@@ -1,18 +1,27 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import Sidebar from './components/Sidebar'
 import GymRoutine from './components/GymRoutine'
-import StudyRoutine from './components/StudyRoutine'
+import StudyRoutine from './components/studyroutine/StudyRoutine'
 import OfficeWork from './components/OfficeWork'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('gym')
+  // Load active tab from localStorage or default to 'gym'
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedTab = localStorage.getItem('activeTab')
+    return savedTab || 'gym'
+  })
 
   const tabs = [
     { id: 'gym', name: '🏋️ Gym Routine', component: GymRoutine },
     { id: 'study', name: '🎓 Study Routine', component: StudyRoutine },
     { id: 'office', name: '💼 Office Work', component: OfficeWork }
   ]
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab)
+  }, [activeTab])
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component
 

@@ -27,7 +27,6 @@ const StudyRoutine = () => {
   const [lastWeekTotal, setLastWeekTotal] = useState(0);
   const [currentWeekTotal, setCurrentWeekTotal] = useState(0);
   const [isWeeklyReset, setIsWeeklyReset] = useState(false);
-  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
 
   // Use the streak logic custom hook
   const {
@@ -360,32 +359,6 @@ const StudyRoutine = () => {
     setShowTimerPopup(false);
     // Clear saved timer state
     localStorage.removeItem('activeStudyTimer');
-  };
-
-  // Reset today's study time
-  const resetTodayStudyTime = () => {
-    // Reset today's study time to 0
-    setTodayStudyTime(0);
-    localStorage.setItem('todayStudyTime', '0');
-    localStorage.setItem('todayStudyDate', new Date().toDateString());
-    
-    // Also reset all time spent for today's subjects
-    setStudyData(prev => ({
-      ...prev,
-      [todayDay]: {
-        ...prev[todayDay],
-        subjects: prev[todayDay]?.subjects?.map(subject => ({
-          ...subject,
-          timeSpent: 0
-        })) || []
-      }
-    }));
-    
-    // Close confirmation dialog
-    setShowResetConfirmation(false);
-    
-    // Show success message
-    showValidationMessage(`Today's study time has been reset to 00:00:00`);
   };
 
   // Toggle subject completion status
@@ -1097,52 +1070,6 @@ const StudyRoutine = () => {
         </div>
       )}
 
-      {/* Reset Confirmation Dialog */}
-      {showResetConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-dark-card rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-100">
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className="text-4xl mb-2">⚠️</div>
-                <h3 className="text-xl font-bold text-gray-800 dark:text-dark-text mb-2">
-                  Reset Today's Study Time?
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  This will reset today's study time to 00:00:00 and clear all time spent on today's subjects. This action cannot be undone.
-                </p>
-              </div>
-              
-              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800/30 mb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold text-red-800 dark:text-red-200">Current Study Time</h4>
-                    <p className="text-sm text-red-600 dark:text-red-300">Will be reset to 00:00:00</p>
-                  </div>
-                  <div className="text-2xl font-bold text-red-800 dark:text-red-200">
-                    {formatTime(todayStudyTime)}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex space-x-3 justify-center">
-                <button
-                  onClick={() => setShowResetConfirmation(false)}
-                  className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={resetTodayStudyTime}
-                  className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  Reset Time
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text transition-colors duration-300">.....  📚 Study Routine Tracker</h2>
@@ -1204,19 +1131,9 @@ const StudyRoutine = () => {
           <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">Today's Study Time</h3>
           <p className="text-sm text-blue-600 dark:text-blue-300">Study hours for today only</p>
               </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
-            {formatTime(todayStudyTime)}
-          </div>
-          <button
-            onClick={() => setShowResetConfirmation(true)}
-            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-1"
-            title="Reset today's study time to 00:00:00"
-          >
-            <span>🔄</span>
-            <span>Reset</span>
-          </button>
-        </div>
+        <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+          {formatTime(todayStudyTime)}
+            </div>
             </div>
       
 

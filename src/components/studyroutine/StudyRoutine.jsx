@@ -43,8 +43,7 @@ const StudyRoutine = () => {
     breakStreakForSkippedDay,
     checkAndBreakStreak,
     getStreakEmoji,
-    addSundayBonus,
-    resetStreakData
+    addSundayBonus
   } = useStudyStreakLogic();
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -746,7 +745,7 @@ const StudyRoutine = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text transition-colors duration-300">📚 Study Routine Tracker</h2>
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:block">
             <div className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 border ${
               streakLoaded 
                 ? 'bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 border-blue-200 dark:from-blue-900/20 dark:to-indigo-900/20 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 dark:border-blue-700' 
@@ -762,21 +761,6 @@ const StudyRoutine = () => {
                 {streakLoaded ? (streakData.currentStreak === 1 ? 'day' : 'days') : 'loading'}
               </span>
             </div>
-            
-            {/* Reset Streak Button */}
-            {streakLoaded && streakData.currentStreak > 0 && (
-              <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to reset your study streak? This action cannot be undone.')) {
-                    resetStreakData();
-                  }
-                }}
-                className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 dark:text-red-400 dark:bg-red-900/20 dark:border-red-700/30 dark:hover:bg-red-800/30 dark:hover:border-red-600/50"
-                title="Reset Study Streak"
-              >
-                🔄 Reset
-              </button>
-            )}
           </div>
         </div>
 
@@ -787,7 +771,7 @@ const StudyRoutine = () => {
               <p className="text-lg font-semibold text-blue-800 dark:text-blue-300 transition-colors duration-300">{todayDate}</p>
             </div>
             <div className="flex items-center justify-between md:justify-end md:space-x-0 md:text-right">
-              <div className="md:hidden flex items-center space-x-2">
+              <div className="md:hidden">
                 <div className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 border ${
                   streakLoaded 
                     ? 'bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 border-blue-200 dark:from-blue-900/20 dark:to-indigo-900/20 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 dark:border-blue-700' 
@@ -803,21 +787,6 @@ const StudyRoutine = () => {
                     {streakLoaded ? (streakData.currentStreak === 1 ? 'day' : 'days') : 'loading'}
                   </span>
                 </div>
-                
-                {/* Mobile Reset Streak Button */}
-                {streakLoaded && streakData.currentStreak > 0 && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to reset your study streak? This action cannot be undone.')) {
-                        resetStreakData();
-                      }
-                    }}
-                    className="px-2 py-2 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 dark:text-red-400 dark:bg-red-900/20 dark:border-red-700/30 dark:hover:bg-red-800/30 dark:hover:border-red-600/50"
-                    title="Reset Study Streak"
-                  >
-                    🔄
-                  </button>
-                )}
               </div>
               <div className="text-right ml-36 md:ml-0">
                 <p className="text-sm text-blue-600 dark:text-blue-400 font-medium transition-colors duration-300">Today's Focus</p>

@@ -1,0 +1,22 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="32" fill="#4F46E5"/>
+  
+  <!-- Graduation cap -->
+  <path d="M16 24L32 16L48 24L32 32L16 24Z" fill="white"/>
+  <path d="M16 24V40C16 40 24 44 32 44C40 44 48 40 48 40V24" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Book -->
+  <rect x="20" y="36" width="24" height="16" rx="2" fill="#FBBF24"/>
+  <rect x="22" y="38" width="20" height="12" rx="1" fill="white"/>
+  <line x1="26" y1="42" x2="38" y2="42" stroke="#6B7280" stroke-width="1"/>
+  <line x1="26" y1="45" x2="34" y2="45" stroke="#6B7280" stroke-width="1"/>
+  
+  <!-- Pencil -->
+  <path d="M44 20L52 12L52 16L44 24L40 20L44 20Z" fill="#EF4444"/>
+  <path d="M40 20L44 24" stroke="#DC2626" stroke-width="1"/>
+  
+  <!-- Small decorative dots -->
+  <circle cx="24" cy="28" r="2" fill="white" opacity="0.7"/>
+  <circle cx="40" cy="28" r="2" fill="white" opacity="0.7"/>
+</svg> 

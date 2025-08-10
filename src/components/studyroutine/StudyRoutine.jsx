@@ -40,8 +40,11 @@ const StudyRoutine = () => {
     streakLoaded,
     incrementStreak,
     decrementStreak,
+    breakStreakForSkippedDay,
+    checkAndBreakStreak,
     getStreakEmoji,
-    addSundayBonus
+    addSundayBonus,
+    resetStreakData
   } = useStudyStreakLogic();
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -521,12 +524,13 @@ const StudyRoutine = () => {
     }
   }, [streakLoaded, todayDay]);
 
-  // Weekly reset functionality
+  // Weekly reset functionality - only resets study data, not streaks
   useEffect(() => {
     if (streakLoaded && todayDay) {
       const today = new Date();
       const currentWeekStart = new Date(today);
-      currentWeekStart.setDate(today.getDate() - today.getDay());
+      // Get Monday of current week (Monday = 1, Sunday = 0)
+      currentWeekStart.setDate(today.getDate() - today.getDay() + 1);
       currentWeekStart.setHours(0, 0, 0, 0);
       
       const lastResetDate = localStorage.getItem('lastWeeklyResetDate');
@@ -558,12 +562,13 @@ const StudyRoutine = () => {
         localStorage.setItem('todayStudyDate', today.toDateString());
         localStorage.setItem('lastWeeklyResetDate', currentWeekStart.toDateString());
         
-         setShowCompletionAnimation(true);
-         setIsNewStreak(false);
-         setIsWeeklyReset(true);
-         setValidationMessage('');
-         setIsValidationShowing(false);
-         setNotificationProgress(100);
+        // Show weekly reset notification (no streak breaking)
+        setShowCompletionAnimation(true);
+        setIsNewStreak(false);
+        setIsWeeklyReset(true);
+        setValidationMessage('');
+        setIsValidationShowing(false);
+        setNotificationProgress(100);
         
         const startTime = Date.now();
         const duration = 3000;
@@ -573,17 +578,67 @@ const StudyRoutine = () => {
           const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
           setNotificationProgress(remaining);
           
-                     if (remaining <= 0) {
-             clearInterval(progressInterval);
-             setShowCompletionAnimation(false);
-             setIsWeeklyReset(false);
-           }
+          if (remaining <= 0) {
+            clearInterval(progressInterval);
+            setShowCompletionAnimation(false);
+            setIsWeeklyReset(false);
+          }
         }, 50);
       }
     }
   }, [streakLoaded, todayDay, days]);
 
-  // Check if all subjects are completed for today
+  // Check for missed study sessions when component loads and streak is available
+  useEffect(() => {
+    if (streakLoaded && !isLoading && Object.keys(studyData).length > 0) {
+      // Check if any previous days had study sessions but weren't completed
+      const today = new Date()
+      const todayString = today.toDateString()
+      
+      // Check each day of the current week
+      days.forEach(day => {
+        if (day !== 'Sunday') {
+          const subjects = studyData[day]?.subjects || []
+          if (subjects.length > 0) {
+            const allCompleted = subjects.every(subject => subject.completed)
+            
+            // If study sessions exist but weren't completed, check if this should break the streak
+            if (!allCompleted && streakData.currentStreak > 0) {
+              // Get the day number (Monday = 0, Tuesday = 1, etc. in our days array)
+              const dayIndex = days.indexOf(day)
+              // Get today's index in the week (Monday = 1, Sunday = 0, but we need to convert)
+              const todayIndex = (today.getDay() + 6) % 7 // Convert to Monday = 0, Sunday = 6
+              
+              // If this is a day that has already passed in the current week
+              if (dayIndex < todayIndex) {
+                // Check if this day was yesterday and study sessions weren't completed
+                if (dayIndex === todayIndex - 1) {
+                  // Yesterday's study sessions weren't completed - break the streak
+                  breakStreakForSkippedDay(day)
+                }
+              }
+            }
+          }
+        }
+      })
+    }
+  }, [streakLoaded, isLoading, studyData, streakData, breakStreakForSkippedDay])
+
+  // Check for missed days when the date changes (e.g., user opens app on a new day)
+  useEffect(() => {
+    if (streakLoaded && streakData.lastCompletedDate) {
+      const today = new Date().toDateString()
+      const lastCompleted = new Date(streakData.lastCompletedDate)
+      const daysDiff = Math.floor((new Date(today) - lastCompleted) / (1000 * 60 * 60 * 24))
+      
+      // If more than 1 day has passed since last completion, break the streak
+      if (daysDiff > 1) {
+        breakStreakForSkippedDay('missed_day')
+      }
+    }
+  }, [streakLoaded, streakData.lastCompletedDate, breakStreakForSkippedDay])
+
+  // Check if all subjects are completed for today and handle streak logic
   useEffect(() => {
     if (streakLoaded && todayDay && studyData[todayDay]) {
       const subjects = studyData[todayDay]?.subjects || [];
@@ -595,8 +650,8 @@ const StudyRoutine = () => {
         const lastCompletedDate = streakData.lastCompletedDate;
         
         if (lastCompletedDate !== today) {
-        incrementStreak();
-      }
+          incrementStreak();
+        }
       } else if (subjects.length === 0) {
         const today = new Date().toDateString();
         const lastCompletedDate = streakData.lastCompletedDate;
@@ -606,7 +661,7 @@ const StudyRoutine = () => {
         }
       }
     }
-  }, [streakLoaded, todayDay, studyData, streakData.lastCompletedDate]);
+  }, [streakLoaded, todayDay, studyData, streakData.lastCompletedDate, incrementStreak, decrementStreak])
 
   // Handle page visibility changes
   useEffect(() => {
@@ -691,7 +746,7 @@ const StudyRoutine = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text transition-colors duration-300">📚 Study Routine Tracker</h2>
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center space-x-3">
             <div className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 border ${
               streakLoaded 
                 ? 'bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 border-blue-200 dark:from-blue-900/20 dark:to-indigo-900/20 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 dark:border-blue-700' 
@@ -707,6 +762,21 @@ const StudyRoutine = () => {
                 {streakLoaded ? (streakData.currentStreak === 1 ? 'day' : 'days') : 'loading'}
               </span>
             </div>
+            
+            {/* Reset Streak Button */}
+            {streakLoaded && streakData.currentStreak > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to reset your study streak? This action cannot be undone.')) {
+                    resetStreakData();
+                  }
+                }}
+                className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 dark:text-red-400 dark:bg-red-900/20 dark:border-red-700/30 dark:hover:bg-red-800/30 dark:hover:border-red-600/50"
+                title="Reset Study Streak"
+              >
+                🔄 Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -717,7 +787,7 @@ const StudyRoutine = () => {
               <p className="text-lg font-semibold text-blue-800 dark:text-blue-300 transition-colors duration-300">{todayDate}</p>
             </div>
             <div className="flex items-center justify-between md:justify-end md:space-x-0 md:text-right">
-              <div className="md:hidden">
+              <div className="md:hidden flex items-center space-x-2">
                 <div className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 border ${
                   streakLoaded 
                     ? 'bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 border-blue-200 dark:from-blue-900/20 dark:to-indigo-900/20 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 dark:border-blue-700' 
@@ -733,6 +803,21 @@ const StudyRoutine = () => {
                     {streakLoaded ? (streakData.currentStreak === 1 ? 'day' : 'days') : 'loading'}
                   </span>
                 </div>
+                
+                {/* Mobile Reset Streak Button */}
+                {streakLoaded && streakData.currentStreak > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to reset your study streak? This action cannot be undone.')) {
+                        resetStreakData();
+                      }
+                    }}
+                    className="px-2 py-2 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 dark:text-red-400 dark:bg-red-900/20 dark:border-red-700/30 dark:hover:bg-red-800/30 dark:hover:border-red-600/50"
+                    title="Reset Study Streak"
+                  >
+                    🔄
+                  </button>
+                )}
               </div>
               <div className="text-right ml-36 md:ml-0">
                 <p className="text-sm text-blue-600 dark:text-blue-400 font-medium transition-colors duration-300">Today's Focus</p>

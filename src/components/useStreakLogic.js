@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 export const useStreakLogic = () => {
   const [isAnimating, setIsAnimating] = useState(false)
@@ -8,7 +8,8 @@ export const useStreakLogic = () => {
     totalStreaks: 0,
     longestStreak: 0,
     lastCompletedDate: null,
-    streakHistory: []
+    streakHistory: [],
+    lastExerciseDate: null // Track when exercises were last completed
   })
   
   // Use ref to access current streakData in functions
@@ -21,12 +22,54 @@ export const useStreakLogic = () => {
       totalStreaks: 0,
       longestStreak: 0,
       lastCompletedDate: null,
-      streakHistory: []
+      streakHistory: [],
+      lastExerciseDate: null
     }
     setStreakData(resetData)
   }
 
-  const incrementStreak = () => {
+  // Check if streak should be broken due to missed days
+  const checkAndBreakStreak = useCallback(() => {
+    const today = new Date().toDateString()
+    const currentStreakData = streakDataRef.current
+    
+    // If no exercises were ever completed, no streak to break
+    if (!currentStreakData.lastExerciseDate) {
+      return false
+    }
+
+    const lastExercise = new Date(currentStreakData.lastExerciseDate)
+    const todayDate = new Date(today)
+    const daysDiff = Math.floor((todayDate - lastExercise) / (1000 * 60 * 60 * 24))
+    
+    // If more than 1 day has passed since last exercise completion, break the streak
+    // This means if you skip a day, your streak breaks
+    if (daysDiff > 1) {
+      const updatedStreakData = {
+        ...currentStreakData,
+        currentStreak: 0, // Reset streak to 0
+        lastCompletedDate: null,
+        streakHistory: [
+          ...currentStreakData.streakHistory,
+          {
+            date: today,
+            streak: 0,
+            type: 'streak_broken_missed_day'
+          }
+        ]
+      }
+      
+      setStreakData(updatedStreakData)
+      setIsAnimating(true)
+      setTimeout(() => setIsAnimating(false), 1000)
+      
+      return true // Streak was broken
+    }
+    
+    return false // Streak is still valid
+  }, [])
+
+  const incrementStreak = useCallback(() => {
     const today = new Date().toDateString()
     const currentStreakData = streakDataRef.current
     
@@ -41,14 +84,15 @@ export const useStreakLogic = () => {
       const todayDate = new Date(today)
       const daysDiff = Math.floor((todayDate - lastCompleted) / (1000 * 60 * 60 * 24))
       
-      // If more than 2 days have passed (allowing Sunday to be missed), reset streak
-      if (daysDiff > 2) {
+      // If more than 1 day has passed, reset streak (no more than 1 day gap allowed)
+      if (daysDiff > 1) {
         const updatedStreakData = {
           ...currentStreakData,
           currentStreak: 1, // Start new streak at 1
           totalStreaks: currentStreakData.totalStreaks + 1,
           longestStreak: Math.max(1, currentStreakData.longestStreak),
           lastCompletedDate: today,
+          lastExerciseDate: today,
           streakHistory: [
             ...currentStreakData.streakHistory,
             {
@@ -76,6 +120,7 @@ export const useStreakLogic = () => {
       totalStreaks: currentStreakData.totalStreaks + 1,
       longestStreak: newLongestStreak,
       lastCompletedDate: today,
+      lastExerciseDate: today,
       streakHistory: [
         ...currentStreakData.streakHistory,
         {
@@ -91,9 +136,9 @@ export const useStreakLogic = () => {
     setTimeout(() => setIsAnimating(false), 1000)
     
     return true // New streak achieved
-  }
+  }, [])
 
-  const decrementStreak = () => {
+  const decrementStreak = useCallback(() => {
     const today = new Date().toDateString()
     const currentStreakData = streakDataRef.current
     
@@ -110,6 +155,7 @@ export const useStreakLogic = () => {
         currentStreak: newCurrentStreak,
         totalStreaks: Math.max(0, currentStreakData.totalStreaks - 1),
         lastCompletedDate: isSundayBonus ? currentStreakData.streakHistory[currentStreakData.streakHistory.length - 2]?.date || null : null,
+        lastExerciseDate: isSundayBonus ? currentStreakData.streakHistory[currentStreakData.streakHistory.length - 2]?.date || null : null,
         streakHistory: currentStreakData.streakHistory.slice(0, -1) // Remove last entry
       }
       
@@ -121,22 +167,54 @@ export const useStreakLogic = () => {
     }
     
     return false // No streak to decrement
-  }
+  }, [])
 
-  const getStreakEmoji = (streak) => {
+  // Function to break streak when exercises are skipped
+  const breakStreakForSkippedDay = useCallback((day) => {
+    const today = new Date().toDateString()
+    const currentStreakData = streakDataRef.current
+    
+    // If there's an active streak and exercises exist for this day but weren't completed
+    if (currentStreakData.currentStreak > 0) {
+      const updatedStreakData = {
+        ...currentStreakData,
+        currentStreak: 0, // Reset streak to 0
+        lastCompletedDate: null,
+        streakHistory: [
+          ...currentStreakData.streakHistory,
+          {
+            date: today,
+            streak: 0,
+            type: 'streak_broken_skipped_exercises',
+            skippedDay: day
+          }
+        ]
+      }
+      
+      setStreakData(updatedStreakData)
+      setIsAnimating(true)
+      setTimeout(() => setIsAnimating(false), 1000)
+      
+      return true // Streak was broken
+    }
+    
+    return false // No streak to break
+  }, [])
+
+  const getStreakEmoji = useCallback((streak) => {
     if (streak === 0) return '😴'
-    if (streak < 3) return '🔥'
-    if (streak < 7) return '⚡'
-    if (streak < 14) return '💪'
-    if (streak < 30) return '🏆'
+    if (streak < 3) return '💪'
+    if (streak < 7) return '🔥'
+    if (streak < 14) return '🏆'
+    if (streak < 30) return '💎'
     return '👑'
-  }
+  }, [])
 
-  const addSundayBonus = (todayDay, setShowCompletionAnimation, setIsNewStreak, setValidationMessage, setIsValidationShowing, setNotificationProgress) => {
+  const addSundayBonus = useCallback((todayDay, setShowCompletionAnimation, setIsNewStreak, setValidationMessage, setIsValidationShowing, setNotificationProgress) => {
     if (todayDay === 'Sunday' && streakLoaded) {
       const today = new Date()
       const todayString = today.toDateString()
-      const lastSundayBonus = localStorage.getItem('lastSundayStreakBonus')
+      const lastSundayBonus = localStorage.getItem('lastSundayGymStreakBonus')
       
       // Check if we haven't given the Sunday bonus yet today
       if (lastSundayBonus !== todayString) {
@@ -148,6 +226,7 @@ export const useStreakLogic = () => {
             totalStreaks: prev.totalStreaks + 1,
             longestStreak: Math.max(prev.currentStreak + 1, prev.longestStreak),
             lastCompletedDate: todayString,
+            lastExerciseDate: todayString,
             streakHistory: [
               ...prev.streakHistory,
               {
@@ -159,7 +238,7 @@ export const useStreakLogic = () => {
           }
           
           // Save the bonus date to localStorage
-          localStorage.setItem('lastSundayStreakBonus', todayString)
+          localStorage.setItem('lastSundayGymStreakBonus', todayString)
           
           return updatedStreak
         })
@@ -188,12 +267,12 @@ export const useStreakLogic = () => {
         }, 50)
       }
     }
-  }
+  }, [streakLoaded])
 
   // Load streak data from localStorage on component mount
   useEffect(() => {
     try {
-      const savedStreakData = localStorage.getItem('exerciseStreak')
+      const savedStreakData = localStorage.getItem('gymStreak')
       
       if (savedStreakData) {
         const parsedStreakData = JSON.parse(savedStreakData)
@@ -204,6 +283,12 @@ export const useStreakLogic = () => {
             typeof parsedStreakData.totalStreaks === 'number' &&
             typeof parsedStreakData.longestStreak === 'number' &&
             Array.isArray(parsedStreakData.streakHistory)) {
+          
+          // Add lastExerciseDate if it doesn't exist (for backward compatibility)
+          if (!parsedStreakData.lastExerciseDate) {
+            parsedStreakData.lastExerciseDate = parsedStreakData.lastCompletedDate
+          }
+          
           setStreakData(parsedStreakData)
         } else {
           // Reset to 0 if invalid data structure
@@ -226,7 +311,7 @@ export const useStreakLogic = () => {
   useEffect(() => {
     // Only save if component has finished loading and we have valid data
     if (streakLoaded && streakData.currentStreak >= 0) {
-      localStorage.setItem('exerciseStreak', JSON.stringify(streakData))
+      localStorage.setItem('gymStreak', JSON.stringify(streakData))
     }
   }, [streakData, streakLoaded])
 
@@ -244,6 +329,8 @@ export const useStreakLogic = () => {
     streakLoaded,
     incrementStreak,
     decrementStreak,
+    breakStreakForSkippedDay,
+    checkAndBreakStreak,
     getStreakEmoji,
     addSundayBonus
   }

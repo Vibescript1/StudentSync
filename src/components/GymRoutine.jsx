@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useStreakLogic } from './useStreakLogic'
 
 const GymRoutine = () => {
@@ -32,6 +32,8 @@ const GymRoutine = () => {
     streakLoaded,
     incrementStreak,
     decrementStreak,
+    breakStreakForSkippedDay,
+    checkAndBreakStreak,
     getStreakEmoji,
     addSundayBonus
   } = useStreakLogic()
@@ -95,39 +97,43 @@ const GymRoutine = () => {
     return resetData
   }
 
-  // Check if we need to reset checkboxes for a new week (Monday)
-  const checkAndResetForNewWeek = (data) => {
+  // Check and reset for new week
+  const checkAndResetForNewWeek = useCallback(() => {
     const today = new Date()
     const todayString = today.toDateString()
-    const currentDayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const lastReset = lastResetDate
     
-    // Check if we need to reset (it's Monday and we haven't reset this week)
-    if (lastResetDate) {
-      const lastReset = new Date(lastResetDate)
+    if (lastReset) {
+      const lastResetDate = new Date(lastReset)
+      const thisMonday = new Date(today)
+      thisMonday.setDate(today.getDate() - today.getDay() + 1) // Get Monday of current week
+      thisMonday.setHours(0, 0, 0, 0)
       
-      // Reset if it's Monday (day 1) and the last reset wasn't this Monday
-      if (currentDayOfWeek === 1) { // Monday
-        const thisMonday = new Date(today)
-        thisMonday.setDate(today.getDate() - today.getDay() + 1) // Get this Monday
-        const lastResetMonday = new Date(lastReset)
-        lastResetMonday.setDate(lastReset.getDate() - lastReset.getDay() + 1) // Get last reset's Monday
-        
-        if (thisMonday.getTime() !== lastResetMonday.getTime()) {
-          const resetData = resetExerciseCheckboxes(data)
-          setLastResetDate(todayString)
-          
-          setResetMessage('Weekly Reset Complete! All exercise checkboxes have been reset for the new week.')
-          
-          setShowResetNotification(true)
-          setTimeout(() => setShowResetNotification(false), 5000)
-          
-          return resetData
-        }
+      const lastResetMonday = new Date(lastResetDate)
+      lastResetMonday.setDate(lastResetDate.getDate() - lastResetDate.getDay() + 1) // Get Monday of last reset week
+      lastResetMonday.setHours(0, 0, 0, 0)
+      
+      if (thisMonday.getTime() !== lastResetMonday.getTime()) {
+        // Only reset exercise checkboxes, don't break streaks automatically
+        const resetData = resetExerciseCheckboxes(gymData)
+        setLastResetDate(todayString)
+        setGymData(resetData)
+        localStorage.setItem('gymData', JSON.stringify(resetData))
+        localStorage.setItem('lastResetDate', todayString)
       }
+    } else {
+      // First time setting reset date
+      setLastResetDate(todayString)
+      localStorage.setItem('lastResetDate', todayString)
     }
-    
-    return data
-  }
+  }, [lastResetDate, gymData])
+
+  // Check and reset for new week when component loads
+  useEffect(() => {
+    if (!isLoading) {
+      checkAndResetForNewWeek()
+    }
+  }, [])
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -202,8 +208,7 @@ const GymRoutine = () => {
       
       if (savedData) {
         const parsedData = JSON.parse(savedData)
-        const processedData = checkAndResetForNewWeek(parsedData)
-        setGymData(processedData)
+        setGymData(parsedData)
       }
     } catch (error) {
       console.error('Error loading gym data from localStorage:', error)
@@ -211,6 +216,60 @@ const GymRoutine = () => {
       setIsLoading(false)
     }
   }, [])
+
+  // Check for missed days when component loads and streak is available
+  useEffect(() => {
+    if (streakLoaded && !isLoading && Object.keys(exerciseRoutines).length > 0) {
+      // Check if any previous days had exercises but weren't completed
+      const today = new Date()
+      const todayString = today.toDateString()
+      
+      // Check each day of the current week
+      days.forEach(day => {
+        if (day !== 'Sunday') {
+          const exercises = exerciseRoutines[day] || []
+          if (exercises.length > 0) {
+            const dayData = gymData[day]
+            if (dayData && dayData.exercises) {
+              const allCompleted = exercises.every(ex => 
+                dayData.exercises[ex.name]?.completed
+              )
+              
+              // If exercises exist but weren't completed, check if this should break the streak
+              if (!allCompleted && streakData.currentStreak > 0) {
+                // Get the day number (0 = Sunday, 1 = Monday, etc.)
+                const dayIndex = days.indexOf(day)
+                const todayIndex = today.getDay()
+                
+                // If this is a day that has already passed in the current week
+                if (dayIndex < todayIndex) {
+                  // Check if this day was yesterday and exercises weren't completed
+                  if (dayIndex === todayIndex - 1) {
+                    // Yesterday's exercises weren't completed - break the streak
+                    breakStreakForSkippedDay(day)
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+    }
+  }, [streakLoaded, isLoading, exerciseRoutines, gymData, streakData, breakStreakForSkippedDay])
+
+  // Check for missed days when the date changes (e.g., user opens app on a new day)
+  useEffect(() => {
+    if (streakLoaded && streakData.lastCompletedDate) {
+      const today = new Date().toDateString()
+      const lastCompleted = new Date(streakData.lastCompletedDate)
+      const daysDiff = Math.floor((new Date(today) - lastCompleted) / (1000 * 60 * 60 * 24))
+      
+      // If more than 1 day has passed since last completion, break the streak
+      if (daysDiff > 1) {
+        breakStreakForSkippedDay('missed_day')
+      }
+    }
+  }, [streakLoaded, streakData.lastCompletedDate, breakStreakForSkippedDay])
 
   // Save data to localStorage whenever gymData changes
   useEffect(() => {
@@ -280,6 +339,38 @@ const GymRoutine = () => {
     // Handle Sunday bonus using the custom hook
     addSundayBonus(currentTodayDay, setShowCompletionAnimation, setIsNewStreak, setValidationMessage, setIsValidationShowing, setNotificationProgress)
   }, [streakLoaded])
+
+  // Check for missed days and break streak if exercises were skipped
+  useEffect(() => {
+    if (streakLoaded && todayDay && todayDay !== 'Sunday') {
+      // Check if there are exercises for today but they weren't completed
+      const exercises = exerciseRoutines[todayDay] || []
+      if (exercises.length > 0) {
+        const allCompleted = exercises.every(ex => 
+          gymData[todayDay]?.exercises?.[ex.name]?.completed
+        )
+        
+        // If exercises exist but weren't completed, this could break the streak
+        // We'll check this when the day changes or when exercises are modified
+        if (!allCompleted && streakData.currentStreak > 0) {
+          // Check if this is a new day and exercises from previous days were skipped
+          const today = new Date().toDateString()
+          const lastCompleted = streakData.lastCompletedDate
+          
+          if (lastCompleted && lastCompleted !== today) {
+            const lastCompletedDate = new Date(lastCompleted)
+            const todayDate = new Date(today)
+            const daysDiff = Math.floor((todayDate - lastCompletedDate) / (1000 * 60 * 60 * 24))
+            
+            // If more than 1 day has passed since last completion, break the streak
+            if (daysDiff > 1) {
+              breakStreakForSkippedDay(todayDay)
+            }
+          }
+        }
+      }
+    }
+  }, [streakLoaded, todayDay, gymData, exerciseRoutines, streakData, breakStreakForSkippedDay])
 
   // Check if all exercises are completed for today when streak is loaded
   useEffect(() => {

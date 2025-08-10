@@ -73,7 +73,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
                 <Award className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-800 dark:text-white">Student Dashboard</h1>
+              <h1 className="text-xl font-bold text-gray-800 dark:text-white">Student-Synce</h1>
             </div>
           ) : (
             <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">

@@ -332,6 +332,7 @@ export const useStreakLogic = () => {
     breakStreakForSkippedDay,
     checkAndBreakStreak,
     getStreakEmoji,
-    addSundayBonus
+    addSundayBonus,
+    resetStreakData
   }
 } 

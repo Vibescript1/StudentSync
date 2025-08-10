@@ -35,7 +35,8 @@ const GymRoutine = () => {
     breakStreakForSkippedDay,
     checkAndBreakStreak,
     getStreakEmoji,
-    addSundayBonus
+    addSundayBonus,
+    resetStreakData
   } = useStreakLogic()
 
 
@@ -883,7 +884,7 @@ const GymRoutine = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-dark-text transition-colors duration-300">🏋️ Weekly Gym Routine</h2>
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center space-x-3">
             <div className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 border ${
               streakLoaded 
                 ? 'bg-gradient-to-r from-orange-100 to-red-100 hover:from-orange-200 hover:to-red-200 border-orange-200 dark:from-orange-900/20 dark:to-red-900/20 dark:hover:from-orange-800/30 dark:hover:to-red-800/30 dark:border-orange-700' 
@@ -899,6 +900,21 @@ const GymRoutine = () => {
                 {streakLoaded ? (streakData.currentStreak === 1 ? 'day' : 'days') : 'loading'}
               </span>
             </div>
+            
+            {/* Reset Streak Button */}
+            {streakLoaded && streakData.currentStreak > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to reset your gym streak? This action cannot be undone.')) {
+                    resetStreakData();
+                  }
+                }}
+                className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 dark:text-red-400 dark:bg-red-900/20 dark:border-red-700/30 dark:hover:bg-red-800/30 dark:hover:border-red-600/50"
+                title="Reset Gym Streak"
+              >
+                🔄 Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -909,7 +925,7 @@ const GymRoutine = () => {
               <p className="text-lg font-semibold text-blue-800 dark:text-blue-300 transition-colors duration-300">{todayDate}</p>
             </div>
             <div className="flex items-center justify-between md:justify-end md:space-x-0 md:text-right">
-              <div className="md:hidden">
+              <div className="md:hidden flex items-center space-x-2">
                 <div className={`inline-flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 border ${
                   streakLoaded 
                     ? 'bg-gradient-to-r from-orange-100 to-red-100 hover:from-orange-200 hover:to-red-200 border-orange-200 dark:from-orange-900/20 dark:to-red-900/20 dark:hover:from-orange-800/30 dark:hover:to-red-800/30 dark:border-orange-700' 
@@ -925,6 +941,21 @@ const GymRoutine = () => {
                     {streakLoaded ? (streakData.currentStreak === 1 ? 'day' : 'days') : 'loading'}
                   </span>
                 </div>
+                
+                {/* Mobile Reset Streak Button */}
+                {streakLoaded && streakData.currentStreak > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to reset your gym streak? This action cannot be undone.')) {
+                        resetStreakData();
+                      }
+                    }}
+                    className="px-2 py-2 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 dark:text-red-400 dark:bg-red-900/20 dark:border-red-700/30 dark:hover:bg-red-800/30 dark:hover:border-red-600/50"
+                    title="Reset Gym Streak"
+                  >
+                    🔄
+                  </button>
+                )}
               </div>
               <div className="text-right ml-36 md:ml-0">
                 <p className="text-sm text-blue-600 dark:text-blue-400 font-medium transition-colors duration-300">Today's Focus</p>
